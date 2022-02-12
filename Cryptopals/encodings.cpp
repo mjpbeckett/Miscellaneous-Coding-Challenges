@@ -89,9 +89,3 @@ void stream_to_hex (const std::string str, std::string& hexstr, bool capital = f
         hexstr[j] = char_to_hex(str[i]) ;
     }
 }
-
-
-int main() {
-
-    return 0 ;
-}
