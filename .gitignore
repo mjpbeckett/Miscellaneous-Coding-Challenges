@@ -3,3 +3,4 @@
 !*.*
 *.o
 /*/tester.cpp
+*.txt
