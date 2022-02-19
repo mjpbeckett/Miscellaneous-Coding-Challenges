@@ -198,6 +198,55 @@ void user_check_decryptions (xor_eval_summary* top_list, xor_eval_summary* botto
     }
 }
 
+void repeating_key_XOR(const std::string key, const std::string plaintext, std::string& encrypted) {
+    // XORs against key, repeating as necessary until entire message encrypted
+    size_t message_length = plaintext.size() ;
+    size_t key_length = key.size() ;
+    encrypted.resize( message_length ) ;
+    for (size_t i = 0; i < message_length; i++) {
+        encrypted[i] = plaintext[i] ^ key[i%key_length] ;
+    }
+}
+
+int count_bits(const char ch) {
+    int total = 0 ;
+    int intch = int(ch) ;
+    for (int i = 0; i < 8; i++) {
+        total += intch&1 ;
+        intch >>= 1 ;
+    }
+    return total ;
+}
+
+int hamming_distance(const std::string str1, const std::string str2) {
+    // Computes Hamming distance between two strings. Strings must be the same size
+    int total = 0 ;
+    for (size_t i = 0; i < str1.size(); i++) {
+        total += count_bits( str1[i]^str2[i] ) ;
+    }
+    return total ;
+}
+
+size_t guess_key_size(const std::string message_str) {
+    size_t cur_guess ;
+    float best_dist = 8 ;
+    float cur_dist ;
+    for ( size_t i = 2; i < 40; i++ ) {
+        cur_dist = 0 ;
+        for ( size_t j = 1; j < 4; j++ ) {
+            cur_dist += float( hamming_distance( message_str.substring( 0, i ),
+                                                 message_str.substring( i*j, i))) ;
+        }
+        cur_dist /= i ;
+        if (cur_dist > best_dist) {
+            cur_guess = i ;
+        }
+    }
+    return cur_guess ;
+}
+
+
+
 int main() {
 
     // Challenge 3
@@ -210,15 +259,26 @@ int main() {
     // user_check_decryptions( best_decrypts, best_decrypts + 20) ;
 
     // Challenge 4
-    std::string filename ;
-    std::cout << "Enter filename: " ;
-    std::cin >> filename ;
-    std::ifstream messages(filename) ;
+    // std::string filename ;
+    // std::cout << "Enter filename: " ;
+    // std::cin >> filename ;
+    // std::ifstream messages(filename) ;
 
-    std::vector<std::string> message_list ;
-    xor_eval_summary best_decrypts[21] ;
-    detect_xor_decryption( messages, message_list, best_decrypts, best_decrypts + 20 ) ;
-    user_check_decryptions( best_decrypts, best_decrypts + 20 ) ;
+    // std::vector<std::string> message_list ;
+    // xor_eval_summary best_decrypts[21] ;
+    // detect_xor_decryption( messages, message_list, best_decrypts, best_decrypts + 20 ) ;
+    // user_check_decryptions( best_decrypts, best_decrypts + 20 ) ;
+
+    //Challenge 5
+    // std::string message = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal" ;
+    // std::string key = "ICE" ;
+    //
+    // std::string encrypted, hexout ;
+    // repeating_key_XOR(key, message, encrypted) ;
+    // stream_to_hex(encrypted, hexout) ;
+    // std::cout << hexout ;
+
+
 
     return 0 ;
 }
