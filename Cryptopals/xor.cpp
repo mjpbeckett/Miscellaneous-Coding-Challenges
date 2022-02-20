@@ -234,8 +234,8 @@ size_t guess_key_size(const std::string message_str) {
     for ( size_t i = 2; i < 40; i++ ) {
         cur_dist = 0 ;
         for ( size_t j = 1; j < 4; j++ ) {
-            cur_dist += float( hamming_distance( message_str.substring( 0, i ),
-                                                 message_str.substring( i*j, i))) ;
+            cur_dist += float( hamming_distance( message_str.substr( 0, i ),
+                                                 message_str.substr( i*j, i))) ;
         }
         cur_dist /= i ;
         if (cur_dist > best_dist) {
@@ -245,7 +245,64 @@ size_t guess_key_size(const std::string message_str) {
     return cur_guess ;
 }
 
+void decrypt_repeating_key(const std::string encrypted,
+                           std::string& decrypted,
+                           std::string& key) {
+    // Finds length of repeating key, then evaluates most likely key
+    size_t keylength = guess_key_size(encrypted) ;
+    int num_rows = encrypted.size()/keylength ;
+    int last_row = encrypted.size()%keylength ;
 
+    // Create array of evaluations, and initialize key_guess_array with most likely guess
+    auto top_eval_array = new xor_eval_summary[keylength][21] ;
+    xor_eval_summary** key_guess_ptrs = new xor_eval_summary*[keylength] ;
+    char* key_guess_chars = new char[keylength] ;
+    std::string ith_column ;
+    for (size_t i; i < keylength; i++) {
+        for (size_t j = i; j < encrypted.size(); j += keylength) {
+            ith_column.append(1, encrypted[i]) ;
+        }
+        single_byte_xor_tester(&ith_column, top_eval_array[i], top_eval_array[i]+20) ;
+        key_guess_ptrs[i] = top_eval_array[i] ;
+        key_guess_chars[i] = (*(key_guess_ptrs[i])).cipher ;
+    }
+
+    // Ask for user input to check keys
+    bool notfound = true ;
+    std::string command ;
+    int char_to_change ;
+    while (notfound) {
+        key = key_guess_chars ;
+        repeating_key_XOR(key, encrypted, decrypted) ;
+        std::cout << "Current decryption:\n------------------\n" ;
+        for (int row = 0; row < num_rows; row++) {
+            std::cout << decrypted.substr(row*keylength, keylength) << "\n" ;
+        }
+        std::cout << decrypted.substr(num_rows*keylength, last_row) << "\n\n" ;
+        std::cout << "Enter y if this is correct, or position of key character to change and u/d to shift up the likelihood list: " ;
+        std::cin >> command ;
+        if (command[0] == 'y') {
+            notfound = false;
+        } else {
+            char_to_change = int(command[0]) ;
+            if (command[1]=='u') {
+                if (key_guess_ptrs[char_to_change] > top_eval_array[char_to_change]) {
+                    key_guess_ptrs[char_to_change]-- ;
+                } else std::cout << "This character can not be changed up.\n" ;
+            } else {
+                if (key_guess_ptrs[char_to_change] < top_eval_array[char_to_change] + 19) {
+                    key_guess_ptrs[char_to_change]++ ;
+                } else std::cout << "This character can not be changed down.\n" ;
+            }
+            key_guess_chars[char_to_change] = (*(key_guess_ptrs[char_to_change])).cipher ;
+        }
+    }
+    delete top_eval_array ;
+    delete key_guess_ptrs ;
+    delete key_guess_chars ;
+}
+
+// NEXT STEP: load in string to test
 
 int main() {
 
