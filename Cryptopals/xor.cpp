@@ -5,10 +5,13 @@
 #include <algorithm>
 #include <fstream>
 #include <vector>
+#include <ctype.h>
 
 void hex_to_stream (const std::string hexstr, std::string& str) ; // defined in encodings.cpp
 
 void stream_to_hex (const std::string str, std::string& hexstr, bool capital = false) ; // defined in encodings.cpp
+
+void b64_to_stream (const std::string b64str, std::string& str) ; // defined in encodings.cpp
 
 void stream_xor(const std::string& in_str1, const std::string& in_str2, std::string& out_str) {
     out_str.resize( in_str1.size() ) ;
@@ -229,20 +232,29 @@ int hamming_distance(const std::string str1, const std::string str2) {
 
 size_t guess_key_size(const std::string message_str) {
     size_t cur_guess ;
-    float best_dist = 8 ;
+    float best_dist = 32 ; // Note: we are looking for best distance over four blocks, normalized by blocklength, which must be at most 32
     float cur_dist ;
     for ( size_t i = 2; i < 40; i++ ) {
         cur_dist = 0 ;
-        for ( size_t j = 1; j < 4; j++ ) {
-            cur_dist += float( hamming_distance( message_str.substr( 0, i ),
-                                                 message_str.substr( i*j, i))) ;
+        for ( size_t j = 1; j < 5; j++ ) {
+            cur_dist += float( hamming_distance( message_str.substr( 20, i ),
+                                                 message_str.substr( 20+i*j, i))) ;
         }
         cur_dist /= i ;
-        if (cur_dist > best_dist) {
+        std::cout << "Best so far: " << best_dist << ", Current: " << cur_dist << ", Length guess: " << cur_guess << "\n";
+        if (cur_dist < best_dist) {
             cur_guess = i ;
+            best_dist = cur_dist ;
         }
     }
     return cur_guess ;
+}
+
+void printsafe (const std::string str, std::string& safestr) {
+    safestr = "" ;
+    for (size_t i = 0; i < str.size(); i++) {
+        safestr.append(1, (std::isprint(str[i])) ? str[i] : '_') ;
+    }
 }
 
 void decrypt_repeating_key(const std::string encrypted,
@@ -252,17 +264,22 @@ void decrypt_repeating_key(const std::string encrypted,
     size_t keylength = guess_key_size(encrypted) ;
     int num_rows = encrypted.size()/keylength ;
     int last_row = encrypted.size()%keylength ;
+    std::cout<< keylength << '\n';
 
     // Create array of evaluations, and initialize key_guess_array with most likely guess
     auto top_eval_array = new xor_eval_summary[keylength][21] ;
     xor_eval_summary** key_guess_ptrs = new xor_eval_summary*[keylength] ;
     char* key_guess_chars = new char[keylength] ;
     std::string ith_column ;
-    for (size_t i; i < keylength; i++) {
+    std::string hex_start ;
+    for (size_t i = 0; i < keylength; i++) {
+        ith_column = "" ;
         for (size_t j = i; j < encrypted.size(); j += keylength) {
-            ith_column.append(1, encrypted[i]) ;
+            ith_column.append(1, encrypted[j]) ;
         }
-        single_byte_xor_tester(&ith_column, top_eval_array[i], top_eval_array[i]+20) ;
+        std::cout << top_eval_array[i] << '\n';
+        std::cout << top_eval_array[i] + 19 << '\n';
+        single_byte_xor_tester(&ith_column, &(top_eval_array[i][0]), &(top_eval_array[i][19])) ;
         key_guess_ptrs[i] = top_eval_array[i] ;
         key_guess_chars[i] = (*(key_guess_ptrs[i])).cipher ;
     }
@@ -271,12 +288,18 @@ void decrypt_repeating_key(const std::string encrypted,
     bool notfound = true ;
     std::string command ;
     int char_to_change ;
+    std::string safeprint ;
     while (notfound) {
-        key = key_guess_chars ;
+        key = "";
+        for (size_t i = 0; i < keylength; i++) {
+            key.append(1, key_guess_chars[i]) ;
+            std::cout << (*(key_guess_ptrs[i])).eval << "\n" ;
+        }
         repeating_key_XOR(key, encrypted, decrypted) ;
         std::cout << "Current decryption:\n------------------\n" ;
         for (int row = 0; row < num_rows; row++) {
-            std::cout << decrypted.substr(row*keylength, keylength) << "\n" ;
+            printsafe(decrypted.substr(row*keylength,keylength), safeprint) ;
+            std::cout << safeprint << ((row%4 == 0) ? "\n" : " | ") ;
         }
         std::cout << decrypted.substr(num_rows*keylength, last_row) << "\n\n" ;
         std::cout << "Enter y if this is correct, or position of key character to change and u/d to shift up the likelihood list: " ;
@@ -302,7 +325,15 @@ void decrypt_repeating_key(const std::string encrypted,
     delete key_guess_chars ;
 }
 
-// NEXT STEP: load in string to test
+void multiline_file_to_string(std::string filename, std::string& outstr) {
+    //reads multiline file and saves to outstr
+    outstr = "" ;
+    std::ifstream infile(filename) ;
+    std::string line ;
+    while (std::getline(infile, line)) {
+        outstr.append(line) ;
+    }
+}
 
 int main() {
 
@@ -335,7 +366,15 @@ int main() {
     // stream_to_hex(encrypted, hexout) ;
     // std::cout << hexout ;
 
-
+    //Challenge 6
+    std::string filename = "Set1Challenge6.txt" ;
+    std::string b64str, plainstr, decrypted, key ;
+    multiline_file_to_string(filename, b64str) ;
+    b64_to_stream(b64str, plainstr) ;
+    std::string hexstr ;
+    stream_to_hex(plainstr.substr(0,20), hexstr) ;
+    std::cout << hexstr << "\n" ;
+    decrypt_repeating_key(plainstr, decrypted, key) ;
 
     return 0 ;
 }

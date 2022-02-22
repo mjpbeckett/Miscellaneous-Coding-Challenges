@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <bitset>
 
 
 // Single Character Conversions
@@ -69,6 +70,42 @@ void stream_to_b64 (std::string& str, std::string& b64str, bool padding = true) 
     }
 
     str.resize(str.size() -1) ;
+}
+
+void b64_to_stream (const std::string b64str, std::string& str) {
+
+    str = "" ;
+
+    char six_bits, bits_to_add, mask ;
+    char remainder_bits = 0 ;
+    size_t bit_offset = 0 ;
+
+    for (size_t i = 0; (i < b64str.size())&&(b64str[i] != '='); i++) {
+        if ((b64str[i] >= ascii_A)&&(b64str[i] < ascii_A + 26)) {
+            six_bits = (b64str[i] - ascii_A + b64_A) << 2 ;
+        } else if ((b64str[i] >= ascii_a)&&(b64str[i] < ascii_a + 26)) {
+            six_bits = (b64str[i] - ascii_a + b64_a) << 2 ;
+        } else if ((b64str[i] >= ascii_0)&&(b64str[i] < ascii_0 + 10)) {
+            six_bits = (b64str[i] - ascii_0 + b64_0) << 2 ;
+        } else if (b64str[i] == ascii_plus) {
+            six_bits = b64_plus << 2 ;
+        } else if (b64str[i] == ascii_slash) {
+            six_bits = b64_slash << 2 ;
+        }
+
+        mask = 0xfc >> bit_offset ;
+        // std::cout << "Remainder bits: " << std::bitset<8>(remainder_bits) ;
+        // std::cout << ", Six bits: " << std::bitset<8>(six_bits) << "\n" ;
+        bits_to_add = ((six_bits >> bit_offset)&mask)|remainder_bits ;
+        if (bit_offset < 2) {
+            remainder_bits = bits_to_add ;
+        } else {
+            // std::cout << "Added bits: " << std::bitset<8>(bits_to_add) << "\n" ;
+            str.append(1, bits_to_add) ;
+            remainder_bits = six_bits << ( 8-bit_offset ) ;
+        }
+        bit_offset = (bit_offset + 6)%8 ;
+    }
 }
 
 void hex_to_stream (const std::string hexstr, std::string& str) {
