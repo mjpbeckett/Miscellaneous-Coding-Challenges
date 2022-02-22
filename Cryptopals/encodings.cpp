@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <bitset>
+#include <stdexcept>
 
 
 // Single Character Conversions
@@ -29,20 +30,38 @@ const char ascii_A = 0x41, ascii_a = 0x61, ascii_0 = 0x30, ascii_plus = 0x2b, as
 
 char sixbit_to_b64 (char sixbit) {
     // converts rightmost six bits to b64 character
-    sixbit &= 0x3f;
-    char outchar;
+    sixbit &= 0x3f ;
+    char outchar ;
     if (sixbit < b64_a) {
-        outchar = sixbit + ascii_A;
+        outchar = sixbit + ascii_A ;
     } else if (sixbit < b64_0) {
-        outchar = sixbit - b64_a + ascii_a;
+        outchar = sixbit - b64_a + ascii_a ;
     } else if (sixbit < b64_plus) {
-        outchar = sixbit - b64_0 + ascii_0;
+        outchar = sixbit - b64_0 + ascii_0 ;
     } else if (sixbit == b64_plus) {
-        outchar = ascii_plus;
+        outchar = ascii_plus ;
     } else {
-        outchar = ascii_slash;
+        outchar = ascii_slash ;
     }
-    return outchar;
+    return outchar ;
+}
+
+char b64_to_sixbit (char b64char) {
+    // converts b64 encoded character to sixbit representation, returned in rightmost six bits
+    if ((b64char >= ascii_A)&&(b64char < ascii_A + 26)) {
+        sixbit = b64_char - ascii_A + b64_A ;
+    } else if ((b64char >= ascii_a)&&(b64char < ascii_a + 26)) {
+        sixbit = b64_char - ascii_a + b64_a ;
+    } else if ((b64char >= ascii_0)&&(b64char < ascii_0 + 10)) {
+        sixbit = b64_char - ascii_0 + b64_0 ;
+    } else if (b64char == ascii_plus) {
+        sixbit = b64_plus ;
+    } else if (b64_char == ascii_slash) {
+        sixbit = b64_slash ;
+    } else {
+        throw std::invalid_argument("Input is not encoded in base64.")
+    }
+    return sixbit ;
 }
 
 
@@ -81,17 +100,7 @@ void b64_to_stream (const std::string b64str, std::string& str) {
     size_t bit_offset = 0 ;
 
     for (size_t i = 0; (i < b64str.size())&&(b64str[i] != '='); i++) {
-        if ((b64str[i] >= ascii_A)&&(b64str[i] < ascii_A + 26)) {
-            six_bits = (b64str[i] - ascii_A + b64_A) << 2 ;
-        } else if ((b64str[i] >= ascii_a)&&(b64str[i] < ascii_a + 26)) {
-            six_bits = (b64str[i] - ascii_a + b64_a) << 2 ;
-        } else if ((b64str[i] >= ascii_0)&&(b64str[i] < ascii_0 + 10)) {
-            six_bits = (b64str[i] - ascii_0 + b64_0) << 2 ;
-        } else if (b64str[i] == ascii_plus) {
-            six_bits = b64_plus << 2 ;
-        } else if (b64str[i] == ascii_slash) {
-            six_bits = b64_slash << 2 ;
-        }
+        six_bits = b64_to_sixbit( b64str[i] ) << 2
 
         mask = 0xfc >> bit_offset ;
         // std::cout << "Remainder bits: " << std::bitset<8>(remainder_bits) ;
