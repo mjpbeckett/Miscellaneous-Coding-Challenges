@@ -48,18 +48,19 @@ char sixbit_to_b64 (char sixbit) {
 
 char b64_to_sixbit (char b64char) {
     // converts b64 encoded character to sixbit representation, returned in rightmost six bits
+    char sixbit ;
     if ((b64char >= ascii_A)&&(b64char < ascii_A + 26)) {
-        sixbit = b64_char - ascii_A + b64_A ;
+        sixbit = b64char - ascii_A + b64_A ;
     } else if ((b64char >= ascii_a)&&(b64char < ascii_a + 26)) {
-        sixbit = b64_char - ascii_a + b64_a ;
+        sixbit = b64char - ascii_a + b64_a ;
     } else if ((b64char >= ascii_0)&&(b64char < ascii_0 + 10)) {
-        sixbit = b64_char - ascii_0 + b64_0 ;
+        sixbit = b64char - ascii_0 + b64_0 ;
     } else if (b64char == ascii_plus) {
         sixbit = b64_plus ;
-    } else if (b64_char == ascii_slash) {
+    } else if (b64char == ascii_slash) {
         sixbit = b64_slash ;
     } else {
-        throw std::invalid_argument("Input is not encoded in base64.")
+        throw std::invalid_argument("Input is not encoded in base64.") ;
     }
     return sixbit ;
 }
@@ -67,12 +68,15 @@ char b64_to_sixbit (char b64char) {
 
 // String Conversions
 
-void stream_to_b64 (std::string& str, std::string& b64str, bool padding = true) {
+void stream_to_b64 (std::string str, std::string& b64str, bool padding = true) {
     b64str.resize(((str.size() + 2) / 3) * 4) ; // b64str should be length of str / 3 (rounded up) multiplied by 4
     str.resize(str.size() + 1, 0x00) ; // pad str with 0s in case 6 does not divide number of bits in str
 
     size_t j = 0; // define it in this scope to be accessible subsequently for padding
     for (size_t byte_ind = 0, offset = 0; byte_ind < str.size() -1; byte_ind += (offset + 6)/8, offset = (offset + 6)%8)  {
+        /* Iterate through blocks of six bits.
+        byte_ind tracks index of current byte, offset number of additional bits
+        to get to desired block of six */
         char sixbit = (str[byte_ind] << offset) | (str[byte_ind + 1] >> (8 - offset)); // find 8 bits starting at byte_ind*8 + offset
         sixbit >>= 2 ; // 6 bits of intrest are now rightmost
         b64str[j] = sixbit_to_b64(sixbit) ;
@@ -87,8 +91,6 @@ void stream_to_b64 (std::string& str, std::string& b64str, bool padding = true) 
     } else {
         b64str.resize(j) ;
     }
-
-    str.resize(str.size() -1) ;
 }
 
 void b64_to_stream (const std::string b64str, std::string& str) {
@@ -96,11 +98,11 @@ void b64_to_stream (const std::string b64str, std::string& str) {
     str = "" ;
 
     char six_bits, bits_to_add, mask ;
-    char remainder_bits = 0 ;
+    char remainder_bits = 0 ;using namespace std;
     size_t bit_offset = 0 ;
 
     for (size_t i = 0; (i < b64str.size())&&(b64str[i] != '='); i++) {
-        six_bits = b64_to_sixbit( b64str[i] ) << 2
+        six_bits = b64_to_sixbit( b64str[i] ) << 2 ;
 
         mask = 0xfc >> bit_offset ;
         // std::cout << "Remainder bits: " << std::bitset<8>(remainder_bits) ;
@@ -135,3 +137,6 @@ void stream_to_hex (const std::string str, std::string& hexstr, bool capital = f
         hexstr[j] = char_to_hex(str[i]) ;
     }
 }
+
+
+//
