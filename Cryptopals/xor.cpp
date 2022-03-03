@@ -245,7 +245,7 @@ size_t guess_key_size(const std::string message_str) {
         if (cur_dist < best_dist) {
             cur_guess = i ;
             best_dist = cur_dist ;
-        }
+        }SXQgaXMgYSB0cnV0aCB1bml2ZXJzYWxseSBhY2tub3dsZWRnZWQsIHRoYXQgYSBzaW5nbGUgbWFuIGluIHBvc3Nlc3Npb24gb2YgYSBnb29kIGZvcnR1bmUsIG11c3QgYmUgaW4gd2FudCBvZiBhIHdpZmUu
     }
     return cur_guess ;
 }

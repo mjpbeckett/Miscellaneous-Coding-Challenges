@@ -1,7 +1,10 @@
+#include "encodings.h"
 #include <iostream>
 #include <string>
 #include <bitset>
 #include <stdexcept>
+#include <vector>
+#include <fstream>
 
 
 // Single Character Conversions
@@ -68,7 +71,7 @@ char b64_to_sixbit (char b64char) {
 
 // String Conversions
 
-void stream_to_b64 (std::string str, std::string& b64str, bool padding = true) {
+void stream_to_b64 (std::string str, std::string& b64str, bool padding) {
     b64str.resize(((str.size() + 2) / 3) * 4) ; // b64str should be length of str / 3 (rounded up) multiplied by 4
     str.resize(str.size() + 1, 0x00) ; // pad str with 0s in case 6 does not divide number of bits in str
 
@@ -128,7 +131,7 @@ void hex_to_stream (const std::string hexstr, std::string& str) {
     }
 }
 
-void stream_to_hex (const std::string str, std::string& hexstr, bool capital = false) {
+void stream_to_hex (const std::string str, std::string& hexstr, bool capital) {
     hexstr.resize(str.size() * 2) ;
 
     for (size_t j = 0, i = 0; j < str.size()*2; j++, i++) {
@@ -139,4 +142,76 @@ void stream_to_hex (const std::string str, std::string& hexstr, bool capital = f
 }
 
 
-//
+
+// File Reading
+
+void single_message_file_reader (const std::string filename, std::string& outstr,
+                                 encoding in_encoding, encoding out_encoding) {
+    /* Reads in file and sets outstr to contained message, concatenating all into single string.
+    in_encoding and out_encoding set the encoding of input and output*/
+    std::string inputstr = "" ;
+    std::ifstream infile(filename) ;
+    std::string line ;
+
+    while (std::getline(infile, line)) {
+        inputstr = inputstr.append(line) ;
+    }
+    infile.close() ;
+
+    std::string interstr ;
+    switch (in_encoding) {
+        case hex:
+            hex_to_stream(inputstr, interstr) ;
+            break ;
+        case b64:
+            b64_to_stream(inputstr, interstr) ;
+            break ;
+        case raw:
+            interstr = inputstr ;
+    }
+    switch (out_encoding) {
+        case hex:
+            stream_to_hex(interstr, outstr) ;
+            break ;
+        case b64:
+            stream_to_b64(interstr, outstr) ;
+            break ;
+        case raw:
+            outstr = interstr ;
+    }
+}
+
+
+void multi_message_file_reader (const std::string filename, std::vector<std::string>& outvector,
+                                encoding in_encoding, encoding out_encoding) {
+    /* Reads in file and sets each line to an element of outvector.
+    in_encoding and out_encoding set the encoding of input and output*/
+    std::ifstream infile(filename) ;
+    outvector.clear() ;
+
+    std::string line, plainline, outline ;
+    while (std::getline(infile, line)) {
+        switch (in_encoding) {
+            case hex:
+                hex_to_stream(line, plainline) ;
+                break ;
+            case b64:
+                b64_to_stream(line, plainline) ;
+                break ;
+            case raw:
+                plainline = line ;
+        }
+        switch (out_encoding) {
+            case hex:
+                stream_to_hex(plainline, outline) ;
+                break ;
+            case b64:
+                stream_to_b64(plainline, outline) ;
+                break ;
+            case raw:
+                outline = plainline ;
+        }
+        outvector.push_back(outline) ;
+    }
+    infile.close() ;
+}
