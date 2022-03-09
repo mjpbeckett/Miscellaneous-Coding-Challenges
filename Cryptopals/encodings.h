@@ -13,4 +13,6 @@ void stream_to_hex (const std::string str, std::string& hexstr, bool capital=fal
 void single_message_file_reader (const std::string filename, std::string& outstr, encoding in_encoding=raw, encoding out_encoding=raw) ;
 void multi_message_file_reader (const std::string filename, std::vector<std::string>& outvector, encoding in_encoding=raw, encoding out_encoding=raw) ;
 
+void printsafe (const std::string str, std::string& safestr) ;
+
 #endif

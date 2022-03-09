@@ -215,3 +215,10 @@ void multi_message_file_reader (const std::string filename, std::vector<std::str
     }
     infile.close() ;
 }
+
+void printsafe (const std::string str, std::string& safestr) {
+    safestr = "" ;
+    for (size_t i = 0; i < str.size(); i++) {
+        safestr.append(1, (std::isprint(str[i])) ? str[i] : '_') ;
+    }
+}
